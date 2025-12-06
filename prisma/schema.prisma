@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/"
+}
+
+datasource db {
+  provider = "postgresql"  
+}
+
+model Shorten {
+  id          Int      @id @default(autoincrement())
+  url         String
+  shortCode   String   @unique
+  accessCount Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
