@@ -3,12 +3,13 @@ import { FastifyInstance } from 'fastify';
 import { ShortenService } from '../services/shorten.service';
 import { ShortenController } from '../controllers/shorten.controller';
 import { prismaClient } from '../db/prisma-client';
+import { redisClient } from '../db/redis-client';
 import { createShortenSchema } from '../validators/shorten.validator';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 export async function shortenRoutes(app: FastifyInstance) {
 
-  const shortenService = new ShortenService(prismaClient);
+  const shortenService = new ShortenService(prismaClient, redisClient);
   const shortenController = new ShortenController(shortenService);
 
   const fastify = app.withTypeProvider<ZodTypeProvider>();

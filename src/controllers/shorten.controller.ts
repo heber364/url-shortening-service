@@ -9,11 +9,17 @@ export class ShortenController {
         req: FastifyRequest<{ Body: ShortenBody }>,
         reply: FastifyReply
     ) => {
-        const { url } = req.body as { url: string };
+        try {
+            const { url } = req.body as { url: string };
+            req.log.info({ url }, `Creating short code for URL: ${url}`);
 
-        const result = await this.shortenService.create(url);
+            const result = await this.shortenService.create(url);
 
-        return reply.status(201).send(result);
+            return reply.status(201).send(result);
+        } catch (error) {
+            req.log.error(error, "Error creating short code");
+            return reply.status(500).send({ message: "Internal Server Error" });
+        }
     };
 
     get = async (

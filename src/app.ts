@@ -3,7 +3,17 @@ import fastify from 'fastify';
 import { shortenRoutes } from './routes/shorten.routes';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 
-export const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+export const app = fastify({ 
+  logger: {
+    level: 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true
+      }
+    }
+  }
+}).withTypeProvider<ZodTypeProvider>();
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);

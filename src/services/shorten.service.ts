@@ -1,12 +1,15 @@
 import { generateShortCode } from '../utils/sqids';
 import { PrismaClient } from '../generated/client';
+import { RedisClientType } from 'redis';
 
 export class ShortenService {
 
-    constructor(private prisma: PrismaClient) { }
+    constructor(
+        private prisma: PrismaClient,
+        private redis: RedisClientType
+    ) { }
 
     async create(originalUrl: string) {
-
         const result = await this.prisma.$queryRaw<[{ nextval: string }]>`
             SELECT nextval('"Shorten_id_seq"')::text
         `;
@@ -23,12 +26,19 @@ export class ShortenService {
             },
         })
 
-
         return shorten
 
     }
 
     async get(shortCode: string) {
+        const cacheKey = `shorten:${shortCode}`;
+        const cachedUrl = await this.redis.get(cacheKey)
+
+        if (cachedUrl) {
+            await this.incrementAccessCount(shortCode)
+            return { url: cachedUrl }
+        }
+
         const shorten = await this.prisma.shorten.findUnique({
             where: {
                 shortCode: shortCode
@@ -36,16 +46,10 @@ export class ShortenService {
         });
 
         if (shorten) {
-            await this.prisma.shorten.update({
-                where: {
-                    id: shorten.id
-                },
-                data: {
-                    accessCount: {
-                        increment: 1
-                    }
-                }
+            await this.redis.set(cacheKey, shorten.url, {
+                EX: 3600
             });
+            await this.incrementAccessCount(shortCode)
         }
 
         return shorten
@@ -61,6 +65,9 @@ export class ShortenService {
             }
         })
 
+        await this.redis.del(`shorten:${shortCode}`);
+        await this.redis.del(`stats:${shortCode}`);
+
         return shortenUpdate
     }
 
@@ -71,12 +78,15 @@ export class ShortenService {
             }
         });
 
-        if(shorten){
+        if (shorten) {
             await this.prisma.shorten.delete({
                 where: {
-                    id: shorten.id 
+                    id: shorten.id
                 }
             })
+
+            await this.redis.del(`shorten:${shortCode}`);
+            await this.redis.del(`stats:${shortCode}`);
 
             return true
         }
@@ -86,13 +96,33 @@ export class ShortenService {
     }
 
     async getStats(shortCode: string) {
+        const cacheKey = `stats:${shortCode}`;
+        const cached = await this.redis.get(cacheKey);
+
+        if (cached) {
+            return JSON.parse(cached);
+        }
+
         const shorten = await this.prisma.shorten.findUnique({
             where: {
                 shortCode: shortCode
             }
         });
 
-        return shorten
+        if (shorten) {
+            await this.redis.set(cacheKey, JSON.stringify(shorten), {
+                EX: 60
+            });
+        }
+
+        return shorten;
+    }
+
+    private async incrementAccessCount(shortCode: string) {
+        await this.prisma.shorten.update({
+            where: { shortCode },
+            data: { accessCount: { increment: 1 } }
+        });
     }
 
 }

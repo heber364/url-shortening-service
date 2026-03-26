@@ -7,17 +7,20 @@ Content-Type: application/json
 }
 
 ### REDIRECT 
-GET  http://localhost:3333/shorten/AXs1ig
+GET  http://localhost:3333/shorten/uw2YK1
 Content-Type: application/json
 
 ### GET STATS 
-GET  http://localhost:3333/shorten/AXs1ig/stats
+GET  http://localhost:3333/shorten/VqXmZF/stats
 Content-Type: application/json
 
 ### UPDATE
-PATCH  http://localhost:3333/shorten/AXs1ig
+PATCH  http://localhost:3333/shorten/EfhxLZ
 Content-Type: application/json
 
 {
-  "url": "https://github.com/heber364/robotics-championship-management/blob/main/backend/package.json"
+  "url": "https://roadmap.sh/backend"
 }
+
+### UPDATE
+DELETE http://localhost:3333/shorten/EfhxLZ
