@@ -1,4 +1,5 @@
 services:
+  # ─── Banco de Dados ───
   db:
     image: postgres:15-alpine
     restart: always
@@ -10,12 +11,40 @@ services:
       - "5432:5432" 
     volumes:
       - postgres-data:/var/lib/postgresql/data 
+
+  # ─── Cache Redis ───
   cache:
     image: redis:7-alpine  
     restart: always
     ports:
       - "6379:6379"        
 
+  # ─── Aplicação Fastify ───
+  app:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: sh -c "npm install && npx tsx watch src/index.ts"
+    environment:
+      DATABASE_URL: "postgresql://myuser:mysecretpassword@db:5432/mydatabase?search_path=public"
+      REDIS_URL: "redis://cache:6379"
+    depends_on:
+      - db
+      - cache
+
+  # ─── Nginx Reverse Proxy ───
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
 volumes:
   postgres-data:
     driver: local
+  node_modules:
